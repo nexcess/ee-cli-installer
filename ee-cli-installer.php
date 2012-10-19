@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Nexcess.net Wordpress CLI Installer
+ * Nexcess.net ExpressionEngine CLI Installer
  * Copyright (C) 2011  Nexcess.net L.L.C.
  *
  * This program is free software; you can redistribute it and/or
