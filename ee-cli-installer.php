@@ -23,9 +23,6 @@
  * @author Alex Headley <aheadley@nexcess.net>
  */
 
-// Suppress Deprecated and PHP Strict Messages
-error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
-
 /**
  * Simple logging function, returns message passed to it
  *
@@ -46,7 +43,7 @@ function _eei_log( $message ) {
  */
 function _eei_debug( $message ) {
     if( defined( '_EEI_VERBOSE' ) && _EEI_VERBOSE ) {
-        return _eei_log( $message );
+        return _eei_log( 'DEBUG: ' . trim( $message ) );
     } else {
         return $message;
     }
@@ -102,14 +99,15 @@ function _eei_random_string( $length = 12 ) {
 }
 
 function _eei_ee_bootstrap( $syspath ) {
+    _eei_debug( 'Bootstrapping with syspath: ' . $syspath );
     _eei_debug( 'Loading bootstrap files' );
     ob_start(); //need to catch the junk that comes from ee startup (welcome page)
-    require_once sprintf( '%sindex.php', $syspath );
-    ob_end_clean();
+    require_once sprintf( '%s/index.php', $syspath );
+    _eei_debug( ob_get_clean() || 'no output' );
     _eei_debug( 'Loaded system bootstrap' );
     ob_start();
-    require_once sprintf( '%sinstaller/controllers/wizard.php', $syspath );
-    ob_end_clean();
+    require_once sprintf( '%s/installer/controllers/wizard.php', $syspath );
+    _eei_debug( ob_get_clean() || 'no output' );
     _eei_debug( 'Loaded install wizard' );
     _eei_debug( 'Bootstrap files loaded' );
 
@@ -287,5 +285,8 @@ function _eei_main() {
 if( isset( $_SERVER['argv'] ) &&
     realpath( $_SERVER['argv'][0] ) === __FILE__ ) {
     //we weren't included, probably
+    // Suppress Deprecated and PHP Strict Messages
+    error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
+
     _eei_main() || _eei_die( 'Installation failed!' );
 }
