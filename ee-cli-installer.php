@@ -100,7 +100,8 @@ function _eei_random_string( $length = 12 ) {
 
 /**
  * This function doesn't actually work, EE exit()'s if it's bootstrapped outside
- * global scope.
+ * global scope. Instead we use _eei_get_func_code to read it's contents and
+ * run it through eval (GOTO's would also work but are PHP5.3 only)
  *
  * @param  string $syspath path to system/ dir
  * @return null
@@ -157,6 +158,7 @@ function _eei_clean_opts( $parsedOpts ) {
         'site_index'        => 'index.php',
         'cp_url'            => null,
         'license_number'    => null,
+        'theme'             => 'agile_records',
     );
 
     $options = array_merge( $defaultOptions, $parsedOpts );
@@ -197,6 +199,9 @@ function _eei_parse_options( $optionData ) {
                 break;
             case 'u':
                 $options['username'] = $option[1];
+                break;
+            case 'T':
+                $options['theme'] = $option[1];
                 break;
             case 'S':
                 $options['site_label'] = $option[1];
@@ -269,7 +274,11 @@ function _eei_do_install() {
     }
 }
 
-function _eei_main() {
+function _eei_post_install() {
+
+}
+
+function _eei_init() {
     array_shift( $_SERVER['argv'] );
     list( $options, $args ) = _eei_do_parsing( $_SERVER['argv'] );
     _eei_debug( 'Found options: ' . print_r( $options, true ) );
@@ -283,13 +292,29 @@ function _eei_main() {
     } else {
         _eei_die( 'Missing system_path argument', 4 );
     }
-    _eei_ee_bootstrap( $syspath );
+    eval( _eei_get_func_code( '_eei_ee_bootstrap' ) );
+    //_eei_ee_bootstrap( $syspath );
     foreach( $options as $key => $value ) {
         //some of these are GET vars, some are POST, hopefully we won't get
         //conflicts by just taking the shotgun approach
         $_POST[$key] = $_GET[$key] = $value;
     }
-    return _eei_do_install();
+}
+
+/**
+ * Get the raw PHP code for a function in this file
+ *
+ * This is a ridiculous hack to work around global scoping issues in EE
+ *
+ * @param  string $funcName
+ * @return string
+ */
+function _eei_get_func_code( $funcName ) {
+    $func = new ReflectionFunction( $funcName );
+    $start = $func->getStartLine();
+    $end = $func->getEndLine();
+    $lines = file( __FILE__ );
+    return implode( '', array_slice( $lines, $start, $end - $start ) );
 }
 
 
@@ -299,46 +324,7 @@ if( isset( $_SERVER['argv'] ) &&
     // Suppress Deprecated and PHP Strict Messages
     error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
 
-    array_shift( $_SERVER['argv'] );
-    list( $options, $args ) = _eei_do_parsing( $_SERVER['argv'] );
-    _eei_debug( 'Found options: ' . print_r( $options, true ) );
-    _eei_debug( 'Found args: ' . print_r( $args, true ) );
-    if( count( $args ) >= 1 ) {
-        if( is_dir( $syspath = realpath( $args[0] ) ) ) {
-            _eei_debug( 'Found system_path: ' . $syspath );
-        } else {
-            _eei_die( 'Path is not a directory: ' . $args[0], 4 );
-        }
-    } else {
-        _eei_die( 'Missing system_path argument', 4 );
-    }
-    _eei_debug( 'Bootstrapping with syspath: ' . $syspath );
-    _eei_debug( 'Loading bootstrap files' );
-    ob_start(); //need to catch the junk that comes from ee startup (welcome page)
-    require_once sprintf( '%s/index.php', $syspath );
-    _eei_debug( ob_get_clean() || 'no output' );
-    _eei_debug( 'Loaded system bootstrap' );
-    ob_start();
-    require_once sprintf( '%s/installer/controllers/wizard.php', $syspath );
-    _eei_debug( ob_get_clean() || 'no output' );
-    _eei_debug( 'Loaded install wizard' );
-    _eei_debug( 'Bootstrap files loaded' );
+    eval( _eei_get_func_code( '_eei_main' ) );
 
-    //this is bad practice but we need to make sure Wizard exists before we
-    //define this class, and we probalby can't depend on class autoloading
-    //
-    //this also probably isn't really needed since apparently EE never uses
-    //protected or private members
-    if( !class_exists( 'EE_CLI_Installer' ) ) {
-        _eei_debug( 'Defining installer class' );
-        class EE_CLI_Installer extends Wizard {
-
-        }
-    }
-    foreach( $options as $key => $value ) {
-        //some of these are GET vars, some are POST, hopefully we won't get
-        //conflicts by just taking the shotgun approach
-        $_POST[$key] = $_GET[$key] = $value;
-    }
-    _eei_do_install();
+    _eei_do_install() && _eei_post_install();
 }
