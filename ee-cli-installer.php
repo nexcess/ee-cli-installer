@@ -278,6 +278,12 @@ function _eei_post_install() {
 
 }
 
+/**
+ * Bootstrap and setup post/get vars for installation. This function should not
+ * be run directly (it will die), instead run through eval/_eei_get_func_code
+ *
+ * @return null
+ */
 function _eei_init() {
     array_shift( $_SERVER['argv'] );
     list( $options, $args ) = _eei_do_parsing( $_SERVER['argv'] );
