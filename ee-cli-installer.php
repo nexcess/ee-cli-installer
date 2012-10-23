@@ -98,6 +98,13 @@ function _eei_random_string( $length = 12 ) {
     return $pass;
 }
 
+/**
+ * This function doesn't actually work, EE exit()'s if it's bootstrapped outside
+ * global scope.
+ *
+ * @param  string $syspath path to system/ dir
+ * @return null
+ */
 function _eei_ee_bootstrap( $syspath ) {
     _eei_debug( 'Bootstrapping with syspath: ' . $syspath );
     _eei_debug( 'Loading bootstrap files' );
@@ -245,16 +252,20 @@ function _eei_do_parsing( $argValues ) {
 
 function _eei_do_install() {
     $installer = new EE_CLI_Installer();
-    _eei_log( 'Installation started' );
+    _eei_debug( 'Doing pre-installation check' );
+    $installer->_preflight();
+    _eei_log( 'Running installation' );
     ob_start();
-    $installer->_do_install();
+    $result = $installer->_do_install();
     $output = ob_get_clean();
     _eei_log( 'Installation finished' );
-    if( preg_match( '~~', $output ) ) {
-        return true;
-    } else {
+    if( $result === false ) {
+        _eei_log( 'Installation failed!' );
         _eei_debug( $output );
         return false;
+    } else {
+        _eei_log( 'Installation was successful' );
+        return true;
     }
 }
 
@@ -288,5 +299,46 @@ if( isset( $_SERVER['argv'] ) &&
     // Suppress Deprecated and PHP Strict Messages
     error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
 
-    _eei_main() || _eei_die( 'Installation failed!' );
+    array_shift( $_SERVER['argv'] );
+    list( $options, $args ) = _eei_do_parsing( $_SERVER['argv'] );
+    _eei_debug( 'Found options: ' . print_r( $options, true ) );
+    _eei_debug( 'Found args: ' . print_r( $args, true ) );
+    if( count( $args ) >= 1 ) {
+        if( is_dir( $syspath = realpath( $args[0] ) ) ) {
+            _eei_debug( 'Found system_path: ' . $syspath );
+        } else {
+            _eei_die( 'Path is not a directory: ' . $args[0], 4 );
+        }
+    } else {
+        _eei_die( 'Missing system_path argument', 4 );
+    }
+    _eei_debug( 'Bootstrapping with syspath: ' . $syspath );
+    _eei_debug( 'Loading bootstrap files' );
+    ob_start(); //need to catch the junk that comes from ee startup (welcome page)
+    require_once sprintf( '%s/index.php', $syspath );
+    _eei_debug( ob_get_clean() || 'no output' );
+    _eei_debug( 'Loaded system bootstrap' );
+    ob_start();
+    require_once sprintf( '%s/installer/controllers/wizard.php', $syspath );
+    _eei_debug( ob_get_clean() || 'no output' );
+    _eei_debug( 'Loaded install wizard' );
+    _eei_debug( 'Bootstrap files loaded' );
+
+    //this is bad practice but we need to make sure Wizard exists before we
+    //define this class, and we probalby can't depend on class autoloading
+    //
+    //this also probably isn't really needed since apparently EE never uses
+    //protected or private members
+    if( !class_exists( 'EE_CLI_Installer' ) ) {
+        _eei_debug( 'Defining installer class' );
+        class EE_CLI_Installer extends Wizard {
+
+        }
+    }
+    foreach( $options as $key => $value ) {
+        //some of these are GET vars, some are POST, hopefully we won't get
+        //conflicts by just taking the shotgun approach
+        $_POST[$key] = $_GET[$key] = $value;
+    }
+    _eei_do_install();
 }
