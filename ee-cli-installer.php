@@ -214,7 +214,7 @@ function _eei_parse_options( $optionData ) {
                         $options['db_name'] = $option[1];
                         break;
                     default:
-                        _wpi_die( 'Unrecognized option: ' . $option[0], 5  );
+                        _eei_die( 'Unrecognized option: ' . $option[0], 5  );
                         break;
                 }
                 break;
@@ -258,8 +258,8 @@ function _eei_do_install() {
 }
 
 function _eei_main() {
-    array_shift( $argv );
-    list( $options, $args ) = _eei_do_parsing( $argv );
+    array_shift( $_SERVER['argv'] );
+    list( $options, $args ) = _eei_do_parsing( $_SERVER['argv'] );
     foreach( $options as $key => $value ) {
         //some of these are GET vars, some are POST, hopefully we won't get
         //conflicts by just taking the shotgun approach
@@ -267,20 +267,20 @@ function _eei_main() {
     }
     if( count( $args ) >= 1 ) {
         if( is_dir( $syspath = realpath( $args[0] ) ) ) {
-            _wpi_debug( 'Found system_path: ' . $syspath );
+            _eei_debug( 'Found system_path: ' . $syspath );
         } else {
-            _wpi_die( 'Path is not a directory: ' . $args[0], 4 );
+            _eei_die( 'Path is not a directory: ' . $args[0], 4 );
         }
     } else {
-        _wpi_die( 'Missing system_path argument', 4 );
+        _eei_die( 'Missing system_path argument', 4 );
     }
     _eei_ee_bootstrap( $syspath );
     return _eei_do_install();
 }
 
 
-if( isset( $_SERVER['ARGV'] ) &&
-    realpath( $_SERVER['ARGV'][0] ) === __FILE__ ) {
+if( isset( $_SERVER['argv'] ) &&
+    realpath( $_SERVER['argv'][0] ) === __FILE__ ) {
     //we weren't included, probably
     _eei_main() || _eei_die( 'Installation failed!' );
 }
