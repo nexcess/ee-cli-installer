@@ -310,11 +310,13 @@ function _eei_init() {
  * @return string
  */
 function _eei_get_func_code( $funcName ) {
+    _eei_debug( 'Loading function code for: ' . $funcName );
     $func = new ReflectionFunction( $funcName );
     $start = $func->getStartLine();
     $end = $func->getEndLine();
     $lines = file( __FILE__ );
-    return implode( '', array_slice( $lines, $start, $end - $start ) );
+    $code = implode( '', array_slice( $lines, $start, $end - 1 - $start ) );
+    _eei_debug( 'Loaded function code: ' . $code );
 }
 
 
@@ -324,7 +326,7 @@ if( isset( $_SERVER['argv'] ) &&
     // Suppress Deprecated and PHP Strict Messages
     error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
 
-    eval( _eei_get_func_code( '_eei_main' ) );
+    eval( _eei_get_func_code( '_eei_init' ) );
 
     _eei_do_install() && _eei_post_install();
 }
