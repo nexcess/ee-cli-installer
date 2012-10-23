@@ -104,11 +104,11 @@ function _eei_random_string( $length = 12 ) {
 function _eei_ee_bootstrap( $syspath ) {
     _eei_debug( 'Loading bootstrap files' );
     ob_start(); //need to catch the junk that comes from ee startup (welcome page)
-    require_once sprintf( '%sindex.php', $system_path );
+    require_once sprintf( '%sindex.php', $syspath );
     ob_end_clean();
     _eei_debug( 'Loaded system bootstrap' );
     ob_start();
-    require_once sprintf( '%sinstaller/controllers/wizard.php', $system_path );
+    require_once sprintf( '%sinstaller/controllers/wizard.php', $syspath );
     ob_end_clean();
     _eei_debug( 'Loaded install wizard' );
     _eei_debug( 'Bootstrap files loaded' );
@@ -263,6 +263,8 @@ function _eei_do_install() {
 function _eei_main() {
     array_shift( $_SERVER['argv'] );
     list( $options, $args ) = _eei_do_parsing( $_SERVER['argv'] );
+    _eei_debug( 'Found options: ' . print_r( $options, true ) );
+    _eei_debug( 'Found args: ' . print_r( $args, true ) );
     if( count( $args ) >= 1 ) {
         if( is_dir( $syspath = realpath( $args[0] ) ) ) {
             _eei_debug( 'Found system_path: ' . $syspath );
