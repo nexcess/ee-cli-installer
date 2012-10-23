@@ -109,8 +109,12 @@ function _eei_ee_bootstrap( $syspath ) {
     _eei_debug( 'Loading bootstrap files' );
     ob_start(); //need to catch the junk that comes from ee startup (welcome page)
     require_once sprintf( '%sindex.php', $system_path );
+    ob_end_clean();
+    _eei_debug( 'Loaded CP bootstrap' );
+    ob_start();
     require_once sprintf( '%sinstaller/controllers/wizard.php', $system_path );
     ob_end_clean();
+    _eei_debug( 'Loaded install wizard' );
     _eei_debug( 'Bootstrap files loaded' );
 
     //this is bad practice but we need to make sure Wizard exists before we
@@ -247,12 +251,15 @@ function _eei_do_parsing( $argValues ) {
 
 function _eei_do_install() {
     $installer = new EE_CLI_Installer();
+    _eei_log( 'Installation started' );
     ob_start();
     $installer->_do_install();
     $output = ob_get_clean();
+    _eei_log( 'Installation finished' );
     if( preg_match( '~~', $output ) ) {
         return true;
     } else {
+        _eei_debug( $output );
         return false;
     }
 }
