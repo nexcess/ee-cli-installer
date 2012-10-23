@@ -101,7 +101,7 @@ function _eei_random_string( $length = 12 ) {
     return $pass;
 }
 
-function _eei_init( $syspath ) {
+function _eei_ee_bootstrap( $syspath ) {
     global $system_path;
     $system_path = rtrim( realpath( $syspath ), '/' ) . '/';
     _eei_log( 'Set system_path to: ' . $system_path );
@@ -274,7 +274,7 @@ function _eei_main() {
     } else {
         _wpi_die( 'Missing system_path argument', 4 );
     }
-    _eei_bootstrap( $syspath );
+    _eei_ee_bootstrap( $syspath );
     return _eei_do_install();
 }
 
