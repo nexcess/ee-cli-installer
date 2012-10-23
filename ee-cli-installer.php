@@ -322,7 +322,7 @@ function _eei_get_func_code( $funcName ) {
     $end = $func->getEndLine();
     $lines = file( __FILE__ );
     $code = implode( '', array_slice( $lines, $start, $end - 1 - $start ) );
-    _eei_debug( 'Loaded function code: ' . $code );
+    return $code;
 }
 
 
