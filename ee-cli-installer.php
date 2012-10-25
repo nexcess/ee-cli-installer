@@ -261,7 +261,7 @@ function _eei_parse_options( $optionData ) {
 }
 
 function _eei_do_parsing( $argValues ) {
-    $shortOptions = 'b:c:e:hl:L:M:p:u:S:v';
+    $shortOptions = 'b:c:e:hl:L:M:p:u:T:S:v';
     $longOptions = array(
         'dbuser=',
         'dbpass=',
@@ -274,7 +274,7 @@ function _eei_do_parsing( $argValues ) {
     $result = $reader->getopt(
         $argValues, $shortOptions, $longOptions );
     if( PEAR::isError( $result ) ) {
-        _eei_die( $result, SystemExit::C_OPTION_PARSING_ERROR );
+        _eei_die( 'Error parsing options', SystemExit::C_OPTION_PARSING_ERROR );
     } else {
         return array( _eei_clean_opts( _eei_parse_options( $result[0] ) ),
             $result[1] );
