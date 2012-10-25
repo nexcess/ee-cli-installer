@@ -510,7 +510,7 @@ function _eei_get_func_code( $funcName ) {
 
 // if __name__ == '__main__':
 if( isset( $_SERVER['argv'] ) &&
-    realpath( $_SERVER['argv'][0] ) === realpath( __FILE__ ) ) {
+    realpath( $_SERVER['argv'][0] ) === __FILE__ ) {
     //we weren't included, probably
     // Suppress Deprecated and PHP Strict Messages
     error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
