@@ -104,7 +104,7 @@ function _eei_die( $message, $code = SystemExit::C_UNKNOWN_ERROR ) {
  * @return null
  */
 function _eei_usage() {
-    print 'Usage: ee-cli-installer.sh [-hv] -b|--base-url <frontend url> -c|--cp-url <backend URL>
+    print 'Usage: php -f ee-cli-installer.sh -- [-hv] -b|--base-url <frontend url> -c|--cp-url <backend URL>
     --dbuser <DB username> --dbpass <DB password> --dbname <DB name> --dbhost <DB host>
     -e|--email-addr <email address> -I|--site-index <index filename> -l|--lic-key <license key>
     -L|--lang <language> -M|--modules <modules list> -p|--password <admin password>

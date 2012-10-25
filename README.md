@@ -6,31 +6,20 @@ A script to install ExpressionEngine completely from the CLI, which makes
 automation that much easier.
 
 The idea is to have a PHP script that just does what the regular ExpressionEngine
-installer does, but done through the CLI. However, since using PHP's CLI binary
-is somewhat awkward, you can instead use the bash shell script which is
-generated (using update-shell-script.sh) and contains the complete PHP script.
-Thus you can do something like this:
-
-    $ wget <url to EE package download> && unzip ExpressionEngine.zip
-    $ wget -q http://goo.gl/OokgX && chmod +x ee-cli-installer.sh
-    $ ./ee-cli-installer.sh -b http://example.com/ -c http://example.com/system/ -e user@example.com -l 1111-2222-3333-4444 system/
-
-Or you can just use bits of the PHP in your own installing script!
+installer does, but done through the CLI. The script is written so that it should
+be includeable in other scripts (without side-effects) if you want to extend or
+integrate it.
 
 ## Usage
 
-You can use the shell script like so:
+You can use the script like so:
 
-    Usage: ee-cli-installer.sh [-hv] -b|--base-url <frontend url> -c|--cp-url <backend URL>
+    Usage: php -f ee-cli-installer.php -- [-hv] -b|--base-url <frontend url> -c|--cp-url <backend URL>
         --dbuser <DB username> --dbpass <DB password> --dbname <DB name> --dbhost <DB host>
         -e|--email-addr <email address> -I|--site-index <index filename> -l|--lic-key <license key>
         -L|--lang <language> -M|--modules <modules list> -p|--password <admin password>
         -u|--username <admin username> -T|--theme <theme> -s|--screen-name <screen name>
         -S|--site-label <site label> <SYSTEM_PATH>
-
-Or you can use the PHP script directly with the same options like this::
-
-    $ php -f ee-cli-installer.php -- [options] path/to/ee/system/
 
 # General options
 
