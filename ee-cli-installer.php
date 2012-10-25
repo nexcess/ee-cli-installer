@@ -149,6 +149,12 @@ function _eei_ee_bootstrap( $syspath ) {
     }
 }
 
+/**
+ * Apply default option values and check for missing required options
+ *
+ * @param  array $parsedOpts [description]
+ * @return array
+ */
 function _eei_clean_opts( $parsedOpts ) {
     if( !is_array( $parsedOpts ) ) {
         _eei_die( 'Failed parsing options: ' . $result->getMessage(),
@@ -168,7 +174,7 @@ function _eei_clean_opts( $parsedOpts ) {
         'deft_lang'         => 'english',
         'username'          => 'admin',
         'password'          => _eei_random_string( 16 ),
-        'screen_name'       => 'admin',
+        'screen_name'       => 'First Last',
         'modules'           => array( 'comment', 'email', 'emoticon',
             'jquery', 'member', 'query', 'rss', 'search', 'stats', 'channel',
             'mailinglist', 'safecracker', 'rte' ),
@@ -191,82 +197,124 @@ function _eei_clean_opts( $parsedOpts ) {
     return $options;
 }
 
+/**
+ * Take parsed option data and turn it into a useful array
+ *
+ * @param  array $optionData [description]
+ * @return array
+ */
 function _eei_parse_options( $optionData ) {
     $options = array();
     foreach( $optionData as $option ) {
-        switch( $option[0] ) {
+        switch( ltrim( $option[0], '-' ) ) {
             case 'b':
+            case 'base-url':
                 $options['site_url'] = $option[1];
                 $options['base_url'] = $option[1];
                 break;
             case 'c':
+            case 'cp-url':
                 $options['cp_url'] = $option[1];
                 break;
+            case 'dbuser':
+                $options['db_username'] = $option[1];
+                break;
+            case 'dbhost':
+                $options['db_hostname'] = $option[1];
+                break;
+            case 'dbpass':
+                $options['db_password'] = $option[1];
+                break;
+            case 'dbname':
+                $options['db_name'] = $option[1];
+                break;
             case 'e':
+            case 'email-addr':
                 $options['webmaster_email'] = $option[1];
                 $options['email_address'] = $option[1];
                 break;
             case 'h':
+            case 'help':
                 _eei_usage();
                 break;
+            case 'I':
+            case 'site-index':
+                $options['site_index'] = $option[1];
+                break;
             case 'l':
+            case 'lic-key':
                 $options['license_number'] = $option[1];
                 break;
             case 'L':
+            case 'lang':
                 $options['language'] = $option[1];
                 $options['deft_lang'] = $option[1];
                 break;
             case 'M':
+            case 'modules':
                 $options['modules'] = array_map( 'trim',
                     explode( ',', $option[1] ) );
                 break;
             case 'p':
+            case 'password':
                 $options['password'] = $option[1];
                 break;
             case 'u':
+            case 'username':
                 $options['username'] = $option[1];
                 break;
             case 'T':
+            case 'theme':
                 $options['theme'] = $option[1];
                 break;
+            case 's':
+            case 'screen-name':
+                $options['screen_name'] = $option[1];
+                break;
             case 'S':
+            case 'site-label':
                 $options['site_label'] = $option[1];
                 break;
             case 'v':
+            case 'verbose':
                 define( '_EEI_VERBOSE', true );
                 break;
             default:
-                switch( ltrim( $option[0], '-' ) ) {
-                    case 'dbuser':
-                        $options['db_username'] = $option[1];
-                        break;
-                    case 'dbhost':
-                        $options['db_hostname'] = $option[1];
-                        break;
-                    case 'dbpass':
-                        $options['db_password'] = $option[1];
-                        break;
-                    case 'dbname':
-                        $options['db_name'] = $option[1];
-                        break;
-                    default:
-                        _eei_die( 'Unrecognized option: ' . $option[0],
-                            SystemExit::C_UNKNOWN_OPTION );
-                        break;
-                }
+                _eei_die( 'Unrecognized option: ' . $option[0],
+                    SystemExit::C_UNKNOWN_OPTION );
                 break;
         }
     }
     return $options;
 }
 
+/**
+ * Main parsing function
+ *
+ * @param  array $argValues
+ * @return array
+ */
 function _eei_do_parsing( $argValues ) {
-    $shortOptions = 'b:c:e:hl:L:M:p:u:T:S:v';
+    $shortOptions = 'b:c:e:hI:l:L:M:p:u:T:s:S:v';
     $longOptions = array(
+        'base-url=',
+        'cp-url=',
         'dbuser=',
         'dbpass=',
         'dbname=',
         'dbhost=',
+        'email-addr=',
+        'help',
+        'site-index=',
+        'lic-key=',
+        'lang=',
+        'modules=',
+        'password=',
+        'username=',
+        'theme=',
+        'screen-name=',
+        'site-label=',
+        'verbose',
     );
 
     require_once 'Console/Getopt.php';
@@ -281,7 +329,11 @@ function _eei_do_parsing( $argValues ) {
     }
 }
 
-
+/**
+ * Run the actual EE install processes
+ *
+ * @return bool
+ */
 function _eei_do_install() {
     $installer = new EE_CLI_Installer();
     _eei_debug( 'Doing pre-installation check' );
@@ -308,12 +360,19 @@ function _eei_do_install() {
     }
 }
 
+/**
+ * Do post-install clean up tasks
+ *
+ * @param  string $syspath [description]
+ * @return bool
+ */
 function _eei_post_install( $syspath ) {
     $installer = sprintf( '%s/installer', $syspath );
     if( is_dir( $installer ) && !is_dir( $installer . '.bak' ) ) {
         rename( $installer, $installer . '.bak' );
         _eei_debug( 'Renamed installer dir to: ' . $installer . '.bak' );
     }
+    return true;
 }
 
 /**
