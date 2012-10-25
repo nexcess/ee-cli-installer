@@ -376,7 +376,12 @@ if( isset( $_SERVER['argv'] ) &&
             eval( _eei_get_func_code( '_eei_init' ) );
 
             //syspath comes from _eei_init
-            _eei_do_install() && _eei_post_install( $syspath );
+            if( _eei_do_install() && _eei_post_install( $syspath ) ) {
+                _eei_log( 'Base URL: ' . $_POST['site_url'] );
+                _eei_log( 'Admin URL: ' . $_POST['cp_url'] );
+                _eei_log( 'Username: ' . $_POST['username'] );
+                _eei_log( 'Password: ' . $_POST['password'] );
+            }
         } catch( Exception $err ) {
             if( get_class( $err ) !== 'SystemExit' ) {
                 _eei_die( $err->getMessage(), SystemExit::C_UNHANDLED_EXCEPTION );
