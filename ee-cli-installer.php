@@ -271,9 +271,14 @@ function _eei_do_parsing( $argValues ) {
 
     require_once 'Console/Getopt.php';
     $reader = new Console_Getopt;
-    list( $opts, $args ) = $reader->getopt(
+    $result = $reader->getopt(
         $argValues, $shortOptions, $longOptions );
-    return array( _eei_clean_opts( _eei_parse_options( $opts ) ), $args );
+    if( PEAR::isError( $result ) ) {
+        _eei_die( $result, SystemExit::C_OPTION_PARSING_ERROR );
+    } else {
+        return array( _eei_clean_opts( _eei_parse_options( $result[0] ) ),
+            $result[1] );
+    }
 }
 
 
