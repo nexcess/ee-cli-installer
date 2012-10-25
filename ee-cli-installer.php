@@ -23,17 +23,33 @@
  * @author Alex Headley <aheadley@nexcess.net>
  */
 
-
+/**
+ * We use this exception to signal that there was an error and that the script
+ * should exit. Not using exit() calls because that would be impossible to
+ * override in a reasonable way and to make integrating the functions in this
+ * script in somethine else possible.
+ */
 class SystemExit extends Exception {
+    // no errors, all good
     const C_OK                      = 0;
+    // default error, dunno what happened
     const C_UNKNOWN_ERROR           = 1;
+    // user used -h or --help
     const C_USAGE                   = 2;
+    // script was run without the systempath argument
     const C_MISSING_ARGUMENT        = 3;
+    // systempath argument given doesn't look right
     const C_INVALID_ARGUMENT        = 4;
+    // unrecognized option was given
     const C_UNKNOWN_OPTION          = 5;
+    // catchall for other optparsing errors
     const C_OPTION_PARSING_ERROR    = 6;
+    // a required option wasn't given (these are the default options with null values)
     const C_MISSING_REQ_OPTION      = 7;
+    // EE threw an exception, haven't actually seen this happen but just in case
     const C_UNHANDLED_EXCEPTION     = 8;
+    // EE min requirements not met (as determined by Wizard::_preflight)
+    const C_REQUIREMENTS_NOT_MET    = 9;
 }
 
 /**
@@ -72,7 +88,7 @@ function _eei_debug( $message ) {
  * @return null
  */
 function _eei_die( $message, $code = SystemExit::C_UNKNOWN_ERROR ) {
-    if( $message ) {
+    if( !$message ) {
         throw new SystemExit( _eei_log( 'Exiting...' ), $code );
     } else {
         throw new SystemExit(
@@ -88,7 +104,58 @@ function _eei_die( $message, $code = SystemExit::C_UNKNOWN_ERROR ) {
  * @return null
  */
 function _eei_usage() {
-    print 'usage string goes here';
+    print 'Usage: ee-cli-installer.sh [-hv] -b|--base-url <frontend url> -c|--cp-url <backend URL>
+    --dbuser <DB username> --dbpass <DB password> --dbname <DB name> --dbhost <DB host>
+    -e|--email-addr <email address> -I|--site-index <index filename> -l|--lic-key <license key>
+    -L|--lang <language> -M|--modules <modules list> -p|--password <admin password>
+    -u|--username <admin username> -T|--theme <theme> -s|--screen-name <screen name>
+    -S|--site-label <site label>
+
+General options:
+    -b|--base-url <frontend URL>
+        URL for the frontend of the site, should include the trailing slash
+        Example: http://example.com/my-ee-site/
+        REQUIRED
+    -c|--cp-url <backend URL>
+        URL for the admin/system part of the site, should include the trailing slash
+        Example: http://example.com/my-ee-site/system/
+        REQUIRED
+    -e|--email-addr <email address>
+        Email address for the admin user and webmaster, not validated
+        REQUIRED
+    -h|--help
+        Print this message
+    -I|--site-index <index filename>
+        Directory index filename, will almost always be "index.php"
+        Default: index.php
+    -l|--lic-key <license key>
+        ExpressionEngine license key
+        Example: 1111-2222-3333-4444
+        REQUIRED
+    -L|--lang <language>
+        Default language, this option has only been tested with "english"
+        Default: english
+    -M|--modules <module list>
+        Comma-separated list of modules to install/enable. This option has not
+        been tested.
+        Default: empty list, populated with EE default module list
+    -p|--password <admin password>
+        Admin password, should be at least 5 characters (not validated)
+        Default: randomly generated 16 character password
+    -u|--username <admin username>
+        Admin username, should be at least 4 characters (not validated)
+        Default: admin
+    -T|--theme <theme>
+        Theme to install
+        Default: agile_records
+    -s|--screen-name <screen name>
+        Full name of initial admin user
+        Default: First Last
+    -S|--site-label <site label>
+        Site title
+        Default: Change Me
+    -v|--verbose
+        Verbose flag, enable more (debug) output' . PHP_EOL;
     _eei_die( null, SystemExit::C_USAGE );
 }
 
@@ -159,7 +226,7 @@ function _eei_ee_bootstrap( $syspath ) {
 /**
  * Apply default option values and check for missing required options
  *
- * @param  array $parsedOpts [description]
+ * @param  array $parsedOpts see _eei_parse_options for the expected array format
  * @return array
  */
 function _eei_clean_opts( $parsedOpts ) {
@@ -207,7 +274,7 @@ function _eei_clean_opts( $parsedOpts ) {
 /**
  * Take parsed option data and turn it into a useful array
  *
- * @param  array $optionData [description]
+ * @param  array $optionData should be in the format returned by Console/Getopt
  * @return array
  */
 function _eei_parse_options( $optionData ) {
@@ -296,7 +363,8 @@ function _eei_parse_options( $optionData ) {
 }
 
 /**
- * Main parsing function
+ * Main parsing function, takes the args from $argv (minus the script name) and
+ * gives back useful data
  *
  * @param  array $argValues
  * @return array
@@ -348,7 +416,8 @@ function _eei_do_install() {
     $result = $installer->_preflight();
     $output = ob_get_clean();
     if( !$result ) {
-        _eei_die( 'Preflight check failed: ' . $output );
+        _eei_die( 'Preflight check failed: ' . $output,
+            SystemExit::C_REQUIREMENTS_NOT_MET );
     } else {
         _eei_debug( $output );
     }
@@ -383,8 +452,10 @@ function _eei_post_install( $syspath ) {
 }
 
 /**
- * Bootstrap and setup post/get vars for installation. This function should not
- * be run directly (it will die), instead run through eval/_eei_get_func_code
+ * Bootstrap and setup post/get vars for installation.
+ *
+ * This function should not be run directly (it will die), instead run through
+ * eval/_eei_get_func_code
  *
  * @return null
  */
@@ -432,7 +503,7 @@ function _eei_get_func_code( $funcName ) {
     return $code;
 }
 
-
+// if __name__ == '__main__':
 if( isset( $_SERVER['argv'] ) &&
     realpath( $_SERVER['argv'][0] ) === __FILE__ ) {
     //we weren't included, probably
