@@ -274,8 +274,12 @@ function _eei_do_install() {
     }
 }
 
-function _eei_post_install() {
-
+function _eei_post_install( $syspath ) {
+    $installer = sprintf( '%s/installer', $syspath );
+    if( is_dir( $installer ) && !is_dir( $installer . '.bak' ) ) {
+        rename( $installer, $installer . '.bak' );
+        _eei_debug( 'Renamed installer dir to: ' . $installer . '.bak' );
+    }
 }
 
 /**
@@ -334,5 +338,6 @@ if( isset( $_SERVER['argv'] ) &&
 
     eval( _eei_get_func_code( '_eei_init' ) );
 
-    _eei_do_install() && _eei_post_install();
+    //syspath comes from _eei_init
+    _eei_do_install() && _eei_post_install( $syspath );
 }
