@@ -1,4 +1,4 @@
-### ExpressionEngine CLI Installer
+# ExpressionEngine CLI Installer
 
 ## Description
 
@@ -21,7 +21,7 @@ You can use the script like so:
         -u|--username <admin username> -T|--theme <theme> -s|--screen-name <screen name>
         -S|--site-label <site label> <SYSTEM_PATH>
 
-# General options
+### General options
 
     -b|--base-url <frontend URL>
         URL for the frontend of the site, should include the trailing slash
@@ -81,7 +81,7 @@ You can use the script like so:
     -v|--verbose
         Verbose flag, enable more (debug) output
 
-#Arguments
+### Arguments
 
     SYSTEM_PATH
         Path the to the EE "system" directory. Note that the name of the dir
