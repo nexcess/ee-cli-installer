@@ -264,9 +264,9 @@ function _eei_do_install() {
     $result = $installer->_do_install();
     $output = ob_get_clean();
     _eei_log( 'Installation finished' );
+    _eei_debug( $output );
     if( $result === false ) {
         _eei_log( 'Installation failed!' );
-        _eei_debug( $output );
         return false;
     } else {
         _eei_log( 'Installation was successful' );
