@@ -125,8 +125,13 @@ function _eei_random_string( $length = 12 ) {
  */
 function _eei_ee_bootstrap( $syspath ) {
     _eei_debug( 'Bootstrapping with syspath: ' . $syspath );
-    $systemIndex = sprintf( '%s/index.php', $syspath );
-    $_SERVER['SCRIPT_FILENAME'] = realpath( $systemIndex );
+    $systemIndex = realpath( sprintf( '%s/index.php', $syspath ) );
+    if( !file_exists( $systemIndex ) ) {
+        _eei_die( 'Unable to find system/index.php, is the system path argument wrong?',
+            SystemExit::C_INVALID_ARGUMENT );
+    }
+    //pretend that we're running from system/index.php
+    $_SERVER['SCRIPT_FILENAME'] = $_SERVER['SCRIPT_NAME'] = $systemIndex;
     _eei_debug( 'Loading bootstrap files' );
     ob_start(); //need to catch the junk that comes from ee startup (welcome page)
     require_once $systemIndex;
