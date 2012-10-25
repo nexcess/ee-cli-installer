@@ -23,6 +23,19 @@
  * @author Alex Headley <aheadley@nexcess.net>
  */
 
+
+class SystemExit extends Exception {
+    const C_OK                      = 0;
+    const C_UNKNOWN_ERROR           = 1;
+    const C_USAGE                   = 2;
+    const C_MISSING_ARGUMENT        = 3;
+    const C_INVALID_ARGUMENT        = 4;
+    const C_UNKNOWN_OPTION          = 5;
+    const C_OPTION_PARSING_ERROR    = 6;
+    const C_MISSING_REQ_OPTION      = 7;
+    const C_UNHANDLED_EXCEPTION     = 8;
+}
+
 /**
  * Simple logging function, returns message passed to it
  *
@@ -58,9 +71,13 @@ function _eei_debug( $message ) {
  * @param  integer $code    exit code
  * @return null
  */
-function _eei_die( $message, $code = 1 ) {
-    _eei_log( 'FATAL ERROR: ' . trim( $message ) );
-    exit( $code );
+function _eei_die( $message, $code = SystemExit::C_UNKNOWN_ERROR ) {
+    if( $message ) {
+        throw new SystemExit( _eei_log( 'Exiting...' ), $code );
+    } else {
+        throw new SystemExit(
+            _eei_log( 'FATAL ERROR: ' . trim( $message ) ), $code );
+    }
 }
 
 /**
@@ -72,7 +89,7 @@ function _eei_die( $message, $code = 1 ) {
  */
 function _eei_usage() {
     print 'usage string goes here';
-    exit( 2 );
+    _eei_die( null, SystemExit::C_USAGE );
 }
 
 /**
@@ -111,11 +128,11 @@ function _eei_ee_bootstrap( $syspath ) {
     _eei_debug( 'Loading bootstrap files' );
     ob_start(); //need to catch the junk that comes from ee startup (welcome page)
     require_once sprintf( '%s/index.php', $syspath );
-    _eei_debug( ob_get_clean() || 'no output' );
+    _eei_debug( 'System bootstrap output: ' . ob_get_clean() );
     _eei_debug( 'Loaded system bootstrap' );
     ob_start();
     require_once sprintf( '%s/installer/controllers/wizard.php', $syspath );
-    _eei_debug( ob_get_clean() || 'no output' );
+    _eei_debug( 'Install Wizard bootstrap output: ' . ob_get_clean() );
     _eei_debug( 'Loaded install wizard' );
     _eei_debug( 'Bootstrap files loaded' );
 
@@ -134,7 +151,8 @@ function _eei_ee_bootstrap( $syspath ) {
 
 function _eei_clean_opts( $parsedOpts ) {
     if( !is_array( $parsedOpts ) ) {
-        _eei_die( 'Failed parsing options: ' . $result->getMessage(), 6 );
+        _eei_die( 'Failed parsing options: ' . $result->getMessage(),
+            SystemExit::C_OPTION_PARSING_ERROR );
     }
     $defaultOptions = array(
         'db_hostname'       => 'localhost',
@@ -155,14 +173,21 @@ function _eei_clean_opts( $parsedOpts ) {
             'jquery', 'member', 'query', 'rss', 'search', 'stats', 'channel',
             'mailinglist', 'safecracker', 'rte' ),
         'site_url'          => null,
+        'base_url'          => null,
         'site_index'        => 'index.php',
         'cp_url'            => null,
         'license_number'    => null,
-        'theme'             => 'agile_records',
+        'theme'             => '',
     );
 
     $options = array_merge( $defaultOptions, $parsedOpts );
     $options['password_confirm'] = $options['password'];
+    foreach( $defaultOptions as $key => $value ) {
+        if( is_null( $value ) && is_null( $options[$key] ) ) {
+            _eei_die( 'Option is required: ' . $key,
+                SystemExit::C_MISSING_REQ_OPTION );
+        }
+    }
     return $options;
 }
 
@@ -172,6 +197,7 @@ function _eei_parse_options( $optionData ) {
         switch( $option[0] ) {
             case 'b':
                 $options['site_url'] = $option[1];
+                $options['base_url'] = $option[1];
                 break;
             case 'c':
                 $options['cp_url'] = $option[1];
@@ -224,7 +250,8 @@ function _eei_parse_options( $optionData ) {
                         $options['db_name'] = $option[1];
                         break;
                     default:
-                        _eei_die( 'Unrecognized option: ' . $option[0], 5  );
+                        _eei_die( 'Unrecognized option: ' . $option[0],
+                            SystemExit::C_UNKNOWN_OPTION );
                         break;
                 }
                 break;
@@ -234,11 +261,6 @@ function _eei_parse_options( $optionData ) {
 }
 
 function _eei_do_parsing( $argValues ) {
-    ## EE install vars required:
-    # 'db_hostname', 'db_username', 'db_name', 'site_label', 'webmaster_email',
-    # 'username', 'password', 'email_address', screen_name, modules (array)
-    # 'password_confirm', site_url, site_index, cp_url, license_number
-    # 'db_password', 'dbdriver', 'db_conntype', 'db_prefix' (exp_)
     $shortOptions = 'b:c:e:hl:L:M:p:u:S:v';
     $longOptions = array(
         'dbuser=',
@@ -258,7 +280,14 @@ function _eei_do_parsing( $argValues ) {
 function _eei_do_install() {
     $installer = new EE_CLI_Installer();
     _eei_debug( 'Doing pre-installation check' );
-    $installer->_preflight();
+    ob_start();
+    $result = $installer->_preflight();
+    $output = ob_get_clean();
+    if( !$result ) {
+        _eei_die( 'Preflight check failed: ' . $output );
+    } else {
+        _eei_debug( $output );
+    }
     _eei_log( 'Running installation' );
     ob_start();
     $result = $installer->_do_install();
@@ -297,10 +326,12 @@ function _eei_init() {
         if( is_dir( $syspath = realpath( $args[0] ) ) ) {
             _eei_debug( 'Found system_path: ' . $syspath );
         } else {
-            _eei_die( 'Path is not a directory: ' . $args[0], 4 );
+            _eei_die( 'Path is not a directory: ' . $args[0],
+                SystemExit::C_INVALID_ARGUMENT );
         }
     } else {
-        _eei_die( 'Missing system_path argument', 4 );
+        _eei_die( 'Missing system_path argument',
+            SystemExit::C_MISSING_ARGUMENT );
     }
     eval( _eei_get_func_code( '_eei_ee_bootstrap' ) );
     //_eei_ee_bootstrap( $syspath );
@@ -312,7 +343,7 @@ function _eei_init() {
 }
 
 /**
- * Get the raw PHP code for a function in this file
+ * Get the raw PHP source code for a function in this file
  *
  * This is a ridiculous hack to work around global scoping issues in EE
  *
@@ -335,9 +366,21 @@ if( isset( $_SERVER['argv'] ) &&
     //we weren't included, probably
     // Suppress Deprecated and PHP Strict Messages
     error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
+    try {
+        try {
+            eval( _eei_get_func_code( '_eei_init' ) );
 
-    eval( _eei_get_func_code( '_eei_init' ) );
-
-    //syspath comes from _eei_init
-    _eei_do_install() && _eei_post_install( $syspath );
+            //syspath comes from _eei_init
+            _eei_do_install() && _eei_post_install( $syspath );
+        } catch( Exception $err ) {
+            if( get_class( $err ) !== 'SystemExit' ) {
+                _eei_die( $err->getMessage(), SystemExit::C_UNHANDLED_EXCEPTION );
+            } else {
+                throw $err;
+            }
+        }
+    } catch( SystemExit $err ) {
+        exit( $err->getCode() );
+    }
+    exit( SystemExit::C_OK );
 }
