@@ -404,6 +404,7 @@ function _eei_init() {
         //conflicts by just taking the shotgun approach
         $_POST[$key] = $_GET[$key] = $value;
     }
+    $_SERVER['HTTP_HOST'] = parse_url( $_POST['site_url'], PHP_URL_HOST );
 }
 
 /**
