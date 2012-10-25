@@ -125,9 +125,11 @@ function _eei_random_string( $length = 12 ) {
  */
 function _eei_ee_bootstrap( $syspath ) {
     _eei_debug( 'Bootstrapping with syspath: ' . $syspath );
+    $systemIndex = sprintf( '%s/index.php', $syspath );
+    $_SERVER['SCRIPT_FILENAME'] = realpath( $systemIndex );
     _eei_debug( 'Loading bootstrap files' );
     ob_start(); //need to catch the junk that comes from ee startup (welcome page)
-    require_once sprintf( '%s/index.php', $syspath );
+    require_once $systemIndex;
     _eei_debug( 'System bootstrap output: ' . ob_get_clean() );
     _eei_debug( 'Loaded system bootstrap' );
     ob_start();
