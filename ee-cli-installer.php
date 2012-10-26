@@ -97,6 +97,45 @@ function _eei_die( $message, $code = SystemExit::C_UNKNOWN_ERROR ) {
 }
 
 /**
+ * Helper callback for _eei_rmrf
+ *
+ * @param  bool $result
+ * @param  bool $item
+ * @return bool
+ */
+function _eei_rmrf_callback( $result, $item ) {
+    return $result && $item;
+}
+
+/**
+ * Recursively delete the given path (file or directory)
+ *
+ * @param  string $path
+ * @return bool
+ */
+function _eei_rmrf( $path ) {
+    if( realpath( $path ) === '/' ) {
+        _eei_die( 'Something has gone terribly wrong' );
+    }
+    _eei_debug( 'Deleting path: ' . $path );
+    if( file_exists( $path ) ) {
+        if( is_dir( $path ) ) {
+            //gogo gadget recursion
+            return array_reduce( array_map( '_eei_rmrf', glob( $path . '/*' ) ),
+                    '_eei_rmrf_callback', true ) &&
+                @rmdir( $path );
+        } else {
+            return @unlink( $path );
+        }
+    } elseif( is_link( $path ) ) {
+        //is a symlink to non-existent file
+        return @unlink( $path );
+    } else {
+        return true;
+    }
+}
+
+/**
  * Print usage info and exit with code 2
  *
  * This function never returns
@@ -448,12 +487,8 @@ function _eei_do_install() {
  * @return bool
  */
 function _eei_post_install( $syspath ) {
-    $installer = sprintf( '%s/installer', $syspath );
-    if( is_dir( $installer ) && !is_dir( $installer . '.bak' ) ) {
-        rename( $installer, $installer . '.bak' );
-        _eei_debug( 'Renamed installer dir to: ' . $installer . '.bak' );
-    }
-    return true;
+    _eei_debug( 'Removing installer directory...' );
+    return _eei_rmrf( sprintf( '%s/installer', $syspath ) );
 }
 
 /**
@@ -515,27 +550,21 @@ if( isset( $_SERVER['argv'] ) &&
     // Suppress Deprecated and PHP Strict Messages
     error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
     try {
-        try {
-            eval( _eei_get_func_code( '_eei_init' ) );
+        eval( _eei_get_func_code( '_eei_init' ) );
 
-            //syspath comes from _eei_init
-            if( _eei_do_install() && _eei_post_install( $syspath ) ) {
-                _eei_log( 'Base URL: ' . $_POST['site_url'] );
-                _eei_log( 'Admin URL: ' . $_POST['cp_url'] );
-                _eei_log( 'Username: ' . $_POST['username'] );
-                _eei_log( 'Password: ' . $_POST['password'] );
-                _eei_log( sprintf( 'Don\'t forget to delete your %s/installer/ directory!',
-                    $syspath ) );
-            }
-        } catch( Exception $err ) {
-            if( get_class( $err ) !== 'SystemExit' ) {
-                _eei_die( $err->getMessage(), SystemExit::C_UNHANDLED_EXCEPTION );
-            } else {
-                throw $err;
-            }
+        //syspath comes from _eei_init
+        if( _eei_do_install() && _eei_post_install( $syspath ) ) {
+            _eei_log( 'Base URL: ' . $_POST['site_url'] );
+            _eei_log( 'Admin URL: ' . $_POST['cp_url'] );
+            _eei_log( 'Username: ' . $_POST['username'] );
+            _eei_log( 'Password: ' . $_POST['password'] );
         }
     } catch( SystemExit $err ) {
         exit( $err->getCode() );
+    } catch( Exception $err ) {
+        _eei_log( sprintf( 'FATAL ERROR: (%s[%d]) %s',
+            get_class( $err ), $err->getCode(), $err->getMessage() ) );
+        exit( SystemExit::C_UNHANDLED_EXCEPTION );
     }
     exit( SystemExit::C_OK );
 }
