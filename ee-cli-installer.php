@@ -135,6 +135,14 @@ function _eei_rmrf( $path ) {
     }
 }
 
+function _eei_clean_output( $htmlText ) {
+    return implode( PHP_EOL,
+        array_filter(
+            array_map( 'trim',
+                explode( PHP_EOL,
+                    strip_tags( $htmlText ) ) ) ) );
+}
+
 /**
  * Print usage info and exit with code 2
  *
@@ -246,11 +254,12 @@ function _eei_ee_bootstrap( $syspath ) {
     _eei_debug( 'Loading bootstrap files' );
     ob_start(); //need to catch the junk that comes from ee startup (welcome page)
     require_once $systemIndex;
-    _eei_debug( 'System bootstrap output: ' . ob_get_clean() );
+    _eei_debug( 'System bootstrap output: ' . _eei_clean_output( ob_get_clean() ) );
     _eei_debug( 'Loaded system bootstrap' );
     ob_start();
     require_once sprintf( '%s/installer/controllers/wizard.php', $syspath );
-    _eei_debug( 'Install Wizard bootstrap output: ' . ob_get_clean() );
+    _eei_debug( 'Install Wizard bootstrap output: ' .
+        _eei_clean_output( ob_get_clean() ) );
     _eei_debug( 'Loaded install wizard' );
     _eei_debug( 'Bootstrap files loaded' );
 
@@ -460,7 +469,7 @@ function _eei_do_install() {
     $result = $installer->_preflight();
     $output = ob_get_clean();
     if( !$result ) {
-        _eei_die( 'Preflight check failed: ' . $output,
+        _eei_die( 'Preflight check failed: ' . _eei_clean_output( $output ),
             SystemExit::C_REQUIREMENTS_NOT_MET );
     } else {
         _eei_debug( $output );
@@ -468,7 +477,7 @@ function _eei_do_install() {
     _eei_log( 'Running installation' );
     ob_start();
     $result = $installer->_do_install();
-    $output = ob_get_clean();
+    $output = _eei_clean_output( ob_get_clean() );
     _eei_log( 'Installation finished' );
     _eei_debug( $output );
     if( $result === false ) {
